@@ -41,6 +41,7 @@ class CamadaEnlace:
 
 class Enlace:
     def __init__(self, linha_serial):
+        self.buffer = b''
         self.linha_serial = linha_serial
         self.linha_serial.registrar_recebedor(self.__raw_recv)
 
@@ -48,10 +49,9 @@ class Enlace:
         self.callback = callback
 
     def enviar(self, datagrama):
-        # TODO: Preencha aqui com o código para enviar o datagrama pela linha
-        # serial, fazendo corretamente a delimitação de quadros e o escape de
-        # sequências especiais, de acordo com o protocolo CamadaEnlace (RFC 1055).
-        pass
+        datagrama = self.escape(datagrama)
+        newDatagrama = b'\xC0' + datagrama + b'\xC0'
+        self.linha_serial.enviar(newDatagrama)
 
     def __raw_recv(self, dados):
         # TODO: Preencha aqui com o código para receber dados da linha serial.
@@ -62,3 +62,13 @@ class Enlace:
         # apenas pedaços de um quadro, ou um pedaço de quadro seguido de um
         # pedaço de outro, ou vários quadros de uma vez só.
         pass
+
+    def escape(self, datagrama):
+        firstEscaped = datagrama.replace(b'\xDB', b'\xDB\xDD')
+        finalEscaped = firstEscaped.replace(b'\xC0', b'\xDB\xDC')
+        return finalEscaped
+        
+    def handleRevertEscape(self, datagrama):
+        firstRevert = datagrama.replace(b'\xDB\xDC', b'\xC0')
+        finalRevert = firstRevert.replace(b'\xDB\xDD', b'\xDB')
+        return finalRevert
